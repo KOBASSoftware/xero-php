@@ -33,6 +33,7 @@ class Response
     private $status;
     private $content_type;
     private $response_body;
+    private $response_header;
 
     private $oauth_response;
 
@@ -43,10 +44,11 @@ class Response
 
     private $root_error;
 
-    public function __construct(Request $request, $response_body, array $curl_info)
+    public function __construct(Request $request, $response_body, $response_header, array $curl_info)
     {
         $this->request = $request;
         $this->response_body = $response_body;
+        $this->response_header = $response_header;
         $this->status = $curl_info['http_code'];
 
         list($this->content_type) = explode(';', $curl_info['content_type']);
@@ -104,7 +106,7 @@ class Response
                 if (false !== stripos($response, 'Organisation is offline')) {
                     throw new OrganisationOfflineException();
                 } elseif (false !== stripos($response, 'Rate limit exceeded')) {
-                    throw new RateLimitExceededException();
+                    throw new RateLimitExceededException($this->response_header);
                 } else {
                     throw new NotAvailableException();
                 }
@@ -213,14 +215,14 @@ class Response
                 case 'ValidationErrors':
                     if (is_array($value)) {
                         foreach ($value as $error) {
-                            $this->element_errors[$element_index] = trim($error['Message'], '.');
+                            $this->element_errors[$element_index][] = trim($error['Message'], '.');
                         }
                     }
                     break;
                 case 'Warnings':
                     if (is_array($value)) {
                         foreach ($value as $warning) {
-                            $this->element_warnings[$element_index] = trim($warning['Message'], '.');
+                            $this->element_warnings[$element_index][] = trim($warning['Message'], '.');
                         }
                     }
                     break;
